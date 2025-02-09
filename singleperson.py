@@ -106,7 +106,7 @@ print('Enjoy your flight!')
 boardpass = "AX" + str(boardGen)
 flnum = airline_Timing.pr + str(flightGen)
 
-con = mysql.connector.connect(user='root', host='localhost', password='mySQL1234$s-10763', database='tickets')
+con = mysql.connector.connect(user='root', host='localhost', password='aswin000', database='tickets')
 cur = con.cursor()
 
 cur.execute(

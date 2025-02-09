@@ -6,8 +6,8 @@ def timeformatter(date):
     d = datetime.datetime.strftime(date, "%Y-%m-%d")
     return d
 
-username = 'AdminBreeze'
-password = 'Admin000'
+username = 'admin'
+password = 'admin'
 
 userin = input('Enter username: ')
 passin = input('Enter password: ')
@@ -16,7 +16,7 @@ if not (userin == username and passin == password):
     print('Username/Password incorrect for Admin')
     exit()
 
-con = connector.connect(host='localhost', user='root', passwd='mySQL1234$s-10763', database='tickets')
+con = connector.connect(host='localhost', user='root', passwd='aswin000', database='tickets')
 cur = con.cursor(buffered=True)
 
 
@@ -55,7 +55,7 @@ while True:
 
     elif ch == 2:
         boardingPassCancel = input('Please enter boarding pass number here: ')
-        con = connector.connect(user='root', host='localhost', password='mySQL1234$s-10763', database='tickets')
+        con = connector.connect(user='root', host='localhost', password='aswin000', database='tickets')
         cur = con.cursor(buffered=True)
         cur.execute('select * from journeydetails where boardingpass = "{}"'.format(boardingPassCancel))
         v = cur.fetchall()

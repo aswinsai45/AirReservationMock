@@ -1,96 +1,108 @@
-import mysql.connector as connector
 import datetime
+import random
+import mysql.connector
+import time
 
-print("\n\nBook Flights with Ease on BREEZE! How can we help you today?\n")
+# Function to validate future dates (Travel Date, Passport Expiry)
+def is_future_date(date_str):
+    try:
+        date = datetime.datetime.strptime(date_str, "%Y-%m-%d").date()
+        if date > datetime.date.today():
+            return date
+        print("Invalid date! Please enter a future date.")
+    except ValueError:
+        print("Invalid format! Use YYYY-MM-DD.")
+    return None
 
+# Function to validate past dates (DOB)
+def is_past_date(date_str):
+    try:
+        date = datetime.datetime.strptime(date_str, "%Y-%m-%d").date()
+        if date < datetime.date.today():
+            return date
+        print("Invalid date! Please enter a past date.")
+    except ValueError:
+        print("Invalid format! Use YYYY-MM-DD.")
+    return None
 
-def timeformatter(date):
-    d = datetime.datetime.strftime(date, "%Y-%m-%d")
-    return d
+# Function to get valid user input for a date
+def get_valid_date(prompt, validation_func):
+    while True:
+        date = validation_func(input(prompt))
+        if date:
+            return date
 
+# Generate boarding pass and flight number
+boardGen = random.randint(28514, 68741)
+flightGen = random.randint(22523, 92527)
+boardpass = "AX" + str(boardGen)
 
-action = {1: "Book a ticket", 2: "Retrieve a ticket", 3: "Cancel a ticket", 4: "ADMIN CONTROL", 5: "Exit"}
+# Travel Details
+travel_date = get_valid_date("Enter departure date (YYYY-MM-DD): ", is_future_date)
 
-print(action)
-userEnter = int(input("\nEnter the Index: "))
-dictAccess = action[userEnter]
-print(dictAccess)
+print("\nNow Enter your Departure Location:")
+departure_country = input("Departing Country: ")
+departure_city = input("Departing City: ")
+departure = f"{departure_city}, {departure_country}"
 
+print("\nNow Enter your Destination Location:")
+destination_country = input("Destination Country: ")
+destination_city = input("Destination City: ")
+destination = f"{destination_city}, {destination_country}"
 
-# Books a Ticket
+international_travel = departure_country != destination_country
 
-def bookticket():
-    print('~~You have chose to book a ticket~~')
-    ch = int(input("\nEnter the number of people travelling [up-to 3]: "))
-    if ch == 1:
-        import singleperson
-    elif ch == 2:
-        import twopersons
-    elif ch == 3:
-        import threepersons
+# Select airline
+import airline_Timing
+pr, chosen, listTime = airline_Timing.choose_airline()  # Correct way to call the function
+
+# Collect number of passengers
+while True:
+    try:
+        num_passengers = int(input("Enter number of passengers (1-3): "))
+        if 1 <= num_passengers <= 3:
+            break
+        print("Invalid input! Enter a number between 1 and 3.")
+    except ValueError:
+        print("Invalid input! Enter a valid number.")
+
+# Storing passenger details in separate lists
+names = []
+dobs = []
+passports = []
+passport_expiries = []
+
+for i in range(1, num_passengers + 1):
+    print(f"\nPASSENGER {i} DETAILS:")
+    names.append(input(f"Enter Passenger {i}'s name: "))
+    dobs.append(get_valid_date(f"Enter Passenger {i}'s DOB (YYYY-MM-DD): ", is_past_date))
+
+    if international_travel:
+        passports.append(input(f"Enter Passenger {i}'s Passport Number: "))
+        passport_expiries.append(get_valid_date(f"Enter Passport Expiry Date (YYYY-MM-DD): ", is_future_date))
     else:
-        print("Sorry, unavailable as of now. Thanks for understanding!")
-        exit()
+        passports.append("DOMESTIC TRAVEL")
+        passport_expiries.append(None)
 
+# Payment processing
+import payment
 
-def retrieveticket():
-    print('~~You have chose to retrieve a ticket~~')
-    boardingPass = input('Enter boarding pass number here: ')
-    con = connector.connect(user='root', host='localhost', password='mySQL1234$s-10763', database='tickets')
-    cur = con.cursor()
-    cur.execute('Select * from journeydetails where boardingpass = "{}"'.format(boardingPass))
-    v = cur.fetchall()
+print("\nProcessing your booking...")
+for i in range(101):
+    print(f"\rProgress: [{'*' * (i // 5)}{' ' * (20 - i // 5)}] {i}%", end='', flush=True)
+    time.sleep(0.05)
+print("\nBooking Complete!")
 
-    for row in v:
-        l = []
-        for col in row:
-            l.append(col)
+# Save details to MySQL database
+con = mysql.connector.connect(user='root', host='localhost', password='aswin000', database='tickets')
+cur = con.cursor()
 
-        print('Name: ', l[0])
-        date1 = l[1]
-        print('Date of Birth: ', timeformatter(date1))
-        print('Boarding Pass Number: ', l[2])
-        print('Passport Number: ', l[3])
-        print('Departure Location: ', l[4])
-        print('Destination Location: ', l[5])
-        print('Airline: ', l[6])
-        print('Departure Time: ', l[7])
-        date2 = l[8]
-        print('DepartureDate: ', timeformatter(date2))
-        print('Flight Number: ', l[9])
-        print('\n\n')
+for i in range(num_passengers):
+    cur.execute(
+        "INSERT INTO journeydetails (Name, DOB, BoardingPass, Passport, Departure, Destination, Airline, DepartureTime, DepartureDate, FlightNumber) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s)",
+        (names[i], dobs[i], boardpass, passports[i], departure, destination, chosen, listTime, travel_date, pr + str(flightGen))
+    )
 
+con.commit()
 
-def cancelticket():
-    print("~~You have chose to cancel a ticket~~")
-    boardingPassCancel = input('Please enter boarding pass number here: ')
-    con = connector.connect(user='root', host='localhost', password='mySQL1234$s-10763', database='tickets')
-    cur = con.cursor(buffered=True)
-    cur.execute('select * from journeydetails where boardingpass = "{}"'.format(boardingPassCancel))
-    v = cur.fetchall()
-    if v == []:
-        print('BoardingPass Incorrect/Not Found')
-
-    else:
-        cur.execute('delete from journeydetails where boardingpass = "{}"'.format(boardingPassCancel))
-        con.commit()
-        print('Successfully Cancelled Ticket :(')
-
-
-if userEnter == 1:
-    bookticket()
-
-elif userEnter == 2:
-    retrieveticket()
-
-elif userEnter == 3:
-    cancelticket()
-
-elif userEnter == 4:
-    import admin
-elif userEnter == 5:
-    print('Exiting..')
-    exit()
-else:
-    print('Sorry command not available. Try Again')
-    exit()
+print(f"\n~~~ YOUR TICKET HAS BEEN BOOKED SUCCESSFULLY! YOUR BOARDING PASS NUMBER IS {boardpass} ~~~")
